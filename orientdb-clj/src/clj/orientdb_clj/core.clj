@@ -6,7 +6,10 @@
     [ring.middleware.params :refer [wrap-params]]
     [ring.util.response :as r]
     [org.httpkit.server :as h])
-  (:import (com.orientechnologies.orient.client.remote OServerAdmin))
+  (:import
+    (com.orientechnologies.orient.core.db.document ODatabaseDocumentTx)
+    (com.orientechnologies.orient.core.record.impl ODocument)
+    (com.orientechnologies.orient.client.remote OServerAdmin))
   (:gen-class))
 
 
@@ -23,12 +26,20 @@
   (let [o (connect! "localhost" "guest" "guest")]
     (str (.listDatabases o))))
 
+(defn create-document! [request]
+  (let [db (-> (ODatabaseDocumentTx. "remote:localhost/petshop") (.open "admin" "admin"))
+        doc (-> (ODocument. "Person"))]
+    (.field doc "name" "Luke")
+    (.field doc "surname" "Skywalker")
+    (.field doc "city" (-> (.ODocument "City") (.field "name" "Rome") (.field "country" "Italy")))))
+
 (defroutes http-routes
   (resources "/")
   (resources "/public")
   (resources "/" {:root "/META-INF/resources"})
   (ANY "/" [] index)
   (GET "/connect" [] connect-guest!)
+  (GET "/document" [] create-document!)
   (not-found "404"))
 
 (def handler
