@@ -7,6 +7,7 @@
     [ring.util.response :as r]
     [org.httpkit.server :as h])
   (:import
+    (com.tinkerpop.blueprints.impls.orient OrientGraph)
     (com.orientechnologies.orient.core.db.document ODatabaseDocumentTx)
     (com.orientechnologies.orient.core.record.impl ODocument)
     (com.orientechnologies.orient.client.remote OServerAdmin))
@@ -33,6 +34,13 @@
     (.field doc "surname" "Skywalker")
     (.field doc "city" (-> (.ODocument "City") (.field "name" "Rome") (.field "country" "Italy")))))
 
+(defn create-graph! [request]
+  (let [graph (-> (OrientGraph. "memory:test", "admin", "admin"))
+        v (.addVertex graph nil)
+        id (.getId v)]
+    (.shutdown graph)
+    (str id)))
+
 (defroutes http-routes
   (resources "/")
   (resources "/public")
@@ -40,6 +48,7 @@
   (ANY "/" [] index)
   (GET "/connect" [] connect-guest!)
   (GET "/document" [] create-document!)
+  (GET "/graph" [] create-graph!)
   (not-found "404"))
 
 (def handler
