@@ -67,14 +67,15 @@
       (:url json))))
 
 (defn generate-response!
-  [channel text]
-  (let [id (or (:id @state) 1)]
-    (swap! state assoc :id (inc id))
-    (json/write-str
-      {:id id
-       :type "message"
-       :channel channel
-       :text text})))
+  ([m]
+    (let [id (or (:id @state) 1)]
+      (swap! state assoc :id (inc id))
+      (json/write-str (merge m {:id id}))))
+  ([channel text]
+   (generate-response!
+     {:type "message"
+      :channel channel
+      :text text})))
 
 (defn handle-to-me [ws msg]
   (if (= (:user msg) (:master @state))
@@ -104,10 +105,25 @@
 (defn on-error [ws e]
   (println "error" e))
 
+(defn set-interval [callback ms]
+  (future (while true (do (Thread/sleep ms) (callback)))))
+
+(defn ping! []
+  (when-let [ws (:ws @state)]
+    (let [ping (generate-response! {:type "ping"})]
+      (println "pinging:" ping)
+      (h/send ws :text ping))))
+
+(defn restart-ping! []
+  (when-let [ping (:ping @state)]
+    (future-cancel ping))
+  (let [ping (set-interval ping! 10000)]
+    (swap! state assoc :ping ping)))
+
 (defn rtm-start
   ([request]
     (when-let [ws (:ws @state)]
-      (.close (:ws @state)))
+      (h/close (:ws @state)))
     (let [token (:token (:params request))
           url (get-websocket-url token)
           client (h/create-client)
@@ -119,6 +135,7 @@
                :byte handle-message
                :text handle-message)]
           (swap! state assoc :ws ws)
+          (restart-ping!)
           "success")))
 
 (defn set-master! [request]
