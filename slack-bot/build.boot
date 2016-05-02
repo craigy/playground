@@ -19,7 +19,8 @@
                  [compojure                  "1.5.0"]
                  [com.cognitect/transit-clj  "0.8.285"]
                  [com.cognitect/transit-cljs "0.8.237"]
-                 [org.julienxx/clj-slack     "0.5.3"]])
+                 [org.julienxx/clj-slack     "0.5.3"]
+                 [http.async.client          "1.1.0"]])
 
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[pandeiro.boot-http :refer [serve]]

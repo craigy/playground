@@ -5,11 +5,16 @@
     [compojure.route :refer [resources not-found]]
     [ring.middleware.params :refer [wrap-params]]
     [ring.util.response :as r]
-    [org.httpkit.server :as h]
+    [org.httpkit.server :as hk]
+    [org.httpkit.client :as http]
     [clj-slack.users :as users]
-    [clj-slack.channels :as channels])
+    [clj-slack.channels :as channels]
+    [http.async.client :as h]
+    [clojure.data.json :as json])
   (:gen-class))
 
+
+(defonce state (atom {}))
 
 (def index
   (->
@@ -51,6 +56,77 @@
         history (channels/history connection channel-id)]
     (clojure.pprint/write (get-history-text history) :pretty true :stream nil)))
 
+(defn get-websocket-url [token]
+  (let [{:keys [body]}
+        @(http/get
+          "https://slack.com/api/rtm.start"
+          {:query-params {:token token :no_unreads true}})]
+    (let [json (json/read-str body :key-fn keyword)]
+      (println (:channels json))
+      (swap! state assoc :my-id (:id (:self json)))
+      (:url json))))
+
+(defn generate-response!
+  [channel text]
+  (let [id (or (:id @state) 1)]
+    (swap! state assoc :id (inc id))
+    (json/write-str
+      {:id id
+       :type "message"
+       :channel channel
+       :text text})))
+
+(defn handle-to-me [ws msg]
+  (if (= (:user msg) (:master @state))
+    (do
+      (println "message from master to me:" msg)
+      (let [response (generate-response! (:channel msg) "yes master")]
+        (println "response:" response)
+        (h/send ws :text response)))
+    (do
+      (println "message to me" msg)
+      (h/send ws :text (generate-response (:channel msg) "I don't know you")))))
+
+(defn handle-message [ws json]
+  (let [msg (json/read-str json :key-fn keyword)]
+    (if (= "message" (:type msg))
+      (if (.contains (:text msg) (str "<@" (:my-id @state) ">"))
+        (handle-to-me ws msg)
+        (println "message:" msg))
+      (println "non-message:" msg))))
+
+(defn on-open [ws]
+  (println "open"))
+
+(defn on-close [ws code reason]
+  (println "close" code reason))
+
+(defn on-error [ws e]
+  (println "error" e))
+
+(defn rtm-start
+  ([request]
+    (when-let [ws (:ws @state)]
+      (.close (:ws @state)))
+    (let [token (:token (:params request))
+          url (get-websocket-url token)
+          client (h/create-client)
+          ws (h/websocket client
+               url
+               :open on-open
+               :close on-close
+               :error on-error
+               :byte handle-message
+               :text handle-message)]
+          (swap! state assoc :ws ws)
+          "success")))
+
+(defn set-master! [request]
+  (let [mn (:name (:params request))]
+    (swap! state assoc :master mn)
+    (println "master set to" (:master @state))
+    "success"))
+
 (defroutes http-routes
   (resources "/")
   (resources "/public")
@@ -59,6 +135,8 @@
   (GET "/users/list/:token" [] users-list)
   (GET "/channels/list/:token" [] channel-list)
   (GET "/channels/history/:channel/:token" [] channel-history)
+  (GET "/rtm/start/:token" [] rtm-start)
+  (GET "/master/:name" [] set-master!)
   (not-found "404"))
 
 (def handler
@@ -76,6 +154,6 @@
 
 (defn -main [& args]
   (let [port (if (seq args) (read-string (first args)) 3000)]
-    (h/run-server handler {:port port})
+    (hk/run-server handler {:port port})
     (println "Started server on port" port)))
 
