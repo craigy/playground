@@ -85,7 +85,7 @@
         (h/send ws :text response)))
     (do
       (println "message to me" msg)
-      (h/send ws :text (generate-response (:channel msg) "I don't know you")))))
+      (h/send ws :text (generate-response! (:channel msg) "I don't know you")))))
 
 (defn handle-message [ws json]
   (let [msg (json/read-str json :key-fn keyword)]
