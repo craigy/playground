@@ -16,7 +16,7 @@
 
 (defn count-lines [request]
   (with-open [rdr (clojure.java.io/reader "/home/craigy/Downloads/quotes.list")]
-    (str (count (line-seq rdr)))))
+    (str (count (filter #(.startsWith % "#") (line-seq rdr))) " movies")))
 
 (defroutes http-routes
   (resources "/")
