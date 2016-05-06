@@ -14,6 +14,7 @@
                  [jonase/eastwood            "0.2.1"     :scope "test" :exclusions [org.clojure/clojure]]
                  [com.orientechnologies/orientdb-core "2.1.16"]
                  [com.orientechnologies/orientdb-client "2.1.16"]
+                 [com.orientechnologies/orientdb-server "2.1.16"]
                  [com.orientechnologies/orientdb-graphdb "2.1.16"]
                  [boot/core                  "2.5.5"]
                  [ring/ring-core             "1.4.0"]

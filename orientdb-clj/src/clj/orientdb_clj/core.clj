@@ -10,8 +10,12 @@
     (com.tinkerpop.blueprints.impls.orient OrientGraph)
     (com.orientechnologies.orient.core.db.document ODatabaseDocumentTx)
     (com.orientechnologies.orient.core.record.impl ODocument)
-    (com.orientechnologies.orient.client.remote OServerAdmin))
+    (com.orientechnologies.orient.client.remote OServerAdmin)
+    (com.orientechnologies.orient.server OServerMain))
   (:gen-class))
+
+
+(defonce state (atom {}))
 
 
 (def index
@@ -41,6 +45,16 @@
     (.shutdown graph)
     (str id)))
 
+(defn create-server!
+  ([request]
+    (create-server!))
+  ([]
+    (let [server (OServerMain/create)]
+      (.startup server)
+      (.activate server)
+      (swap! state assoc :server server)
+      "success")))
+
 (defroutes http-routes
   (resources "/")
   (resources "/public")
@@ -49,6 +63,7 @@
   (GET "/connect" [] connect-guest!)
   (GET "/document" [] create-document!)
   (GET "/graph" [] create-graph!)
+  (GET "/server" [] create-server!)
   (not-found "404"))
 
 (def handler
@@ -59,6 +74,8 @@
 (defn init []
   (do
     (println "Starting orientdb-clj server")
+    (create-server!)
+    (println "Starting orientdb-clj client")
     (connect! "localhost" "guest" "guest")))
 
 (defn -main [& args]
