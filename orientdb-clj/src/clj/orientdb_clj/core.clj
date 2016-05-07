@@ -40,10 +40,11 @@
 
 (defn create-graph! [request]
   (let [graph (-> (OrientGraph. "memory:test", "admin", "admin"))
-        v (.addVertex graph nil)
-        id (.getId v)]
+        s (.addVertex graph nil)
+        t (.addVertex graph nil)
+        e (.addEdge graph nil s t "connection")]
     (.shutdown graph)
-    (str id)))
+    (str (.getId s) (.getId e) (.getId t))))
 
 (defn create-server!
   ([request]
