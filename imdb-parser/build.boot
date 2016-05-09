@@ -17,6 +17,9 @@
                  [ring/ring-jetty-adapter    "1.4.0"]
                  [http-kit                   "2.1.19"]
                  [compojure                  "1.5.0"]
+                 [com.orientechnologies/orientdb-core "2.1.16"]
+                 [com.orientechnologies/orientdb-client "2.1.16"]
+                 [com.orientechnologies/orientdb-server "2.1.16"]
                  [com.cognitect/transit-clj  "0.8.285"]
                  [com.cognitect/transit-cljs "0.8.237"]])
 
